@@ -292,7 +292,7 @@ function QuizCard({
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
           </svg>
           <span className="text-xs text-charcoal-400 font-mono truncate flex-1">
-            {typeof window !== 'undefined' ? window.location.origin : ''}/quiz/{quiz.id}
+            {process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')}/quiz/{quiz.id}
           </span>
         </div>
       </div>
@@ -391,7 +391,8 @@ export default function ManageQuizzesPage() {
 
   /* Handlers */
   const handleCopy = (quizId: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/quiz/${quizId}`);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+    navigator.clipboard.writeText(`${baseUrl}/quiz/${quizId}`);
     setCopiedId(quizId);
     setTimeout(() => setCopiedId(null), 2000);
   };
