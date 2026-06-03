@@ -231,7 +231,13 @@ export default function SuccessPage() {
 
               {/* Close button */}
               <button
-                onClick={() => window.close()}
+                onClick={() => {
+                  window.open('', '_self', '');
+                  window.close();
+                  setTimeout(() => {
+                    window.location.href = '/';
+                  }, 250);
+                }}
                 className="
                   w-full flex items-center justify-center gap-2.5
                   bg-charcoal-900 hover:bg-charcoal-800

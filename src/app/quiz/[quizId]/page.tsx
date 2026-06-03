@@ -137,10 +137,12 @@ export default function CandidateEntry() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [resumeData, setResumeData] = useState<string | null>(null);
   const [resumeName, setResumeName] = useState<string | null>(null);
   const [resumeError, setResumeError] = useState<string | null>(null);
-  const [focused, setFocused] = useState(false);
+  const [focusedName, setFocusedName] = useState(false);
+  const [focusedEmail, setFocusedEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -204,9 +206,10 @@ export default function CandidateEntry() {
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || submitting || resumeError) return;
+    if (!name.trim() || !email.trim() || submitting || resumeError) return;
     setSubmitting(true);
     localStorage.setItem(`candidate_name_${quizId}`, name.trim());
+    localStorage.setItem(`candidate_email_${quizId}`, email.trim());
     if (resumeData) {
       localStorage.setItem(`candidate_resume_${quizId}`, resumeData);
       localStorage.setItem(`candidate_resume_name_${quizId}`, resumeName || '');
@@ -317,7 +320,7 @@ export default function CandidateEntry() {
                       border-2 rounded-2xl
                       bg-white
                       transition-all duration-200
-                      ${focused
+                      ${focusedName
                         ? 'border-brand-400 shadow-[0_0_0_4px_rgb(232_72_58_/_0.10)]'
                         : 'border-warm-300 hover:border-warm-400'
                       }
@@ -338,8 +341,8 @@ export default function CandidateEntry() {
                       placeholder="e.g. Priya Sharma"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      onFocus={() => setFocused(true)}
-                      onBlur={() => setFocused(false)}
+                      onFocus={() => setFocusedName(true)}
+                      onBlur={() => setFocusedName(false)}
                       className="
                         w-full pl-10 pr-4 py-3.5
                         font-body text-[0.9375rem] text-charcoal-900
@@ -350,6 +353,62 @@ export default function CandidateEntry() {
                     />
                     {/* Tick when name entered */}
                     {name.trim().length > 1 && (
+                      <div className="absolute right-4 text-green-500 animate-scale-in">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="candidate-email"
+                    className="block font-display font-semibold text-sm text-charcoal-700 mb-2"
+                  >
+                    Email address
+                  </label>
+
+                  {/* Animated input wrapper */}
+                  <div
+                    className={`
+                      relative flex items-center
+                      border-2 rounded-2xl
+                      bg-white
+                      transition-all duration-200
+                      ${focusedEmail
+                        ? 'border-brand-400 shadow-[0_0_0_4px_rgb(232_72_58_/_0.10)]'
+                        : 'border-warm-300 hover:border-warm-400'
+                      }
+                    `}
+                  >
+                    <div className="absolute left-4 text-charcoal-400">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <rect width="20" height="16" x="2" y="4" rx="2"/>
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                      </svg>
+                    </div>
+                    <input
+                      id="candidate-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="priya@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onFocus={() => setFocusedEmail(true)}
+                      onBlur={() => setFocusedEmail(false)}
+                      className="
+                        w-full pl-10 pr-4 py-3.5
+                        font-body text-[0.9375rem] text-charcoal-900
+                        placeholder:text-charcoal-400
+                        bg-transparent rounded-2xl
+                        focus:outline-none
+                      "
+                    />
+                    {/* Tick when email entered */}
+                    {email.includes('@') && email.includes('.') && (
                       <div className="absolute right-4 text-green-500 animate-scale-in">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
@@ -394,7 +453,7 @@ export default function CandidateEntry() {
                 {/* Submit button */}
                 <button
                   type="submit"
-                  disabled={!name.trim() || submitting || !!resumeError}
+                  disabled={!name.trim() || !email.trim() || submitting || !!resumeError}
                   className="
                     w-full flex items-center justify-center gap-2.5
                     bg-brand-600 hover:bg-brand-700

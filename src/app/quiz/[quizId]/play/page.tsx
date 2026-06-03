@@ -62,6 +62,7 @@ export default function QuizEngine() {
   const submitResults = useCallback(async (finalAnswers: Record<string, string>) => {
     setSubmitting(true);
     const candidateName = localStorage.getItem(`candidate_name_${quizId}`) || 'Unknown';
+    const candidateEmail = localStorage.getItem(`candidate_email_${quizId}`) || '';
     const resumeData = localStorage.getItem(`candidate_resume_${quizId}`);
     let score = 0;
     questions.forEach(q => { if (finalAnswers[q.id] === q.correct_answer) score += 1; });
@@ -69,6 +70,7 @@ export default function QuizEngine() {
     const payload: any = {
       quiz_id: quizId,
       candidate_name: candidateName,
+      candidate_email: candidateEmail,
       score,
       answers: finalAnswers,
       tab_switch_count: tabSwitchCount,
@@ -78,6 +80,7 @@ export default function QuizEngine() {
     await supabase.from('results').insert([payload]);
     
     localStorage.removeItem(`candidate_name_${quizId}`);
+    localStorage.removeItem(`candidate_email_${quizId}`);
     localStorage.removeItem(`candidate_resume_${quizId}`);
     localStorage.removeItem(`candidate_resume_name_${quizId}`);
     router.push(`/quiz/${quizId}/success`);

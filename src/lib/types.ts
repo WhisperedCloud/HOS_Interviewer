@@ -24,6 +24,7 @@ export interface Result {
   created_at?: string;
   quiz_id: string;
   candidate_name: string;
+  candidate_email?: string;
   score: number;
   total_questions: number;
   answers: any[];

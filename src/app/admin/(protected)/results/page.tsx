@@ -336,12 +336,17 @@ export default function ViewResults() {
                             {/* Candidate */}
                             <td className="px-4 py-3.5">
                               <div className="flex items-center gap-2.5">
-                                <div className="w-7 h-7 rounded-lg bg-brand-100 flex items-center justify-center flex-shrink-0">
+                                <div className="w-7 h-7 rounded-lg bg-brand-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                                   <span className="font-display font-bold text-brand-700 text-xs">
                                     {r.candidate_name.slice(0, 2).toUpperCase()}
                                   </span>
                                 </div>
-                                <span className="font-display font-semibold text-charcoal-800 text-sm">{r.candidate_name}</span>
+                                <div className="flex flex-col">
+                                  <span className="font-display font-semibold text-charcoal-800 text-sm leading-tight">{r.candidate_name}</span>
+                                  {r.candidate_email && (
+                                    <span className="text-charcoal-400 text-[11px] font-medium leading-tight mt-0.5">{r.candidate_email}</span>
+                                  )}
+                                </div>
                               </div>
                             </td>
 
