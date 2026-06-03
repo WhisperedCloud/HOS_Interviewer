@@ -57,18 +57,18 @@ function LoadingSkeleton() {
 
 /* ─── Error / unavailable state ──────────────────────────────────────────── */
 function ErrorState({ message }: { message: string }) {
-  const isExpired  = message.toLowerCase().includes('ended');
-  const isEarly    = message.toLowerCase().includes('not be active');
+  const isExpired = message.toLowerCase().includes('ended');
+  const isEarly = message.toLowerCase().includes('not be active');
   const isNotFound = message.toLowerCase().includes('not found') || message.toLowerCase().includes('invalid');
 
   const Icon = isNotFound ? Link2Off : isExpired ? TimerOff : isEarly ? CalendarClock : AlertTriangle;
   const title = isNotFound
     ? 'Link not found'
     : isExpired
-    ? 'Assessment closed'
-    : isEarly
-    ? 'Not yet available'
-    : 'Access denied';
+      ? 'Assessment closed'
+      : isEarly
+        ? 'Not yet available'
+        : 'Access denied';
 
   return (
     <div className="relative flex flex-col min-h-dvh overflow-hidden">
@@ -107,7 +107,7 @@ function ErrorState({ message }: { message: string }) {
                   </svg>
                 </div>
                 <p className="text-xs text-charcoal-500 leading-relaxed">
-                  If you believe this is an error, please contact your recruiter or HR team for a valid assessment link.
+                  If you believe this is an error, please contact the recruiter or HR team for a valid assessment link.
                 </p>
               </div>
             </div>
@@ -133,10 +133,13 @@ export default function CandidateEntry() {
   const { quizId } = useParams();
   const router = useRouter();
 
-  const [quiz, setQuiz]       = useState<Quiz | null>(null);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
-  const [name, setName]       = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [resumeData, setResumeData] = useState<string | null>(null);
+  const [resumeName, setResumeName] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -154,8 +157,8 @@ export default function CandidateEntry() {
         return;
       }
 
-      const now   = new Date().getTime();
-      const from  = new Date(data.active_from).getTime();
+      const now = new Date().getTime();
+      const from = new Date(data.active_from).getTime();
       const until = new Date(data.active_until).getTime();
 
       if (now < from) {
@@ -171,17 +174,52 @@ export default function CandidateEntry() {
     fetchQuiz();
   }, [quizId]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setResumeError(null);
+    if (!file) {
+      setResumeData(null);
+      setResumeName(null);
+      return;
+    }
+
+    if (file.size > 1024 * 1024) { // 1MB
+      setResumeError('Resume file must be less than 1MB');
+      e.target.value = ''; // reset
+      setResumeData(null);
+      setResumeName(null);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setResumeData(event.target?.result as string);
+      setResumeName(file.name);
+    };
+    reader.onerror = () => {
+      setResumeError('Failed to read file');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || submitting) return;
+    if (!name.trim() || submitting || resumeError) return;
     setSubmitting(true);
     localStorage.setItem(`candidate_name_${quizId}`, name.trim());
+    if (resumeData) {
+      localStorage.setItem(`candidate_resume_${quizId}`, resumeData);
+      localStorage.setItem(`candidate_resume_name_${quizId}`, resumeName || '');
+    } else {
+      localStorage.removeItem(`candidate_resume_${quizId}`);
+      localStorage.removeItem(`candidate_resume_name_${quizId}`);
+    }
     router.push(`/quiz/${quizId}/play`);
   };
 
   /* ── States ── */
   if (loading) return <LoadingSkeleton />;
-  if (error)   return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} />;
 
   /* ── Active quiz entry form ── */
   return (
@@ -239,20 +277,20 @@ export default function CandidateEntry() {
                   {quiz?.domain && (
                     <InfoChip
                       icon={
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
                       }
                       label={quiz.domain}
                     />
                   )}
                   <InfoChip
                     icon={
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
                     }
                     label="Timed assessment"
                   />
                   <InfoChip
                     icon={
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                     }
                     label="One attempt"
                   />
@@ -287,8 +325,8 @@ export default function CandidateEntry() {
                   >
                     <div className="absolute left-4 text-charcoal-400">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
                       </svg>
                     </div>
                     <input
@@ -314,17 +352,49 @@ export default function CandidateEntry() {
                     {name.trim().length > 1 && (
                       <div className="absolute right-4 text-green-500 animate-scale-in">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"/>
+                          <polyline points="20 6 9 17 4 12" />
                         </svg>
                       </div>
                     )}
                   </div>
                 </div>
 
+                {/* Resume upload */}
+                <div>
+                  <label
+                    htmlFor="candidate-resume"
+                    className="block font-display font-semibold text-sm text-charcoal-700 mb-2"
+                  >
+                    Upload Resume (Optional) <span className="font-normal text-charcoal-400">— Max 1MB</span>
+                  </label>
+                  <input
+                    id="candidate-resume"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                    className="
+                      block w-full text-sm text-charcoal-500
+                      file:mr-4 file:py-2.5 file:px-4
+                      file:rounded-xl file:border-0
+                      file:text-sm file:font-semibold file:font-display
+                      file:bg-brand-50 file:text-brand-700
+                      hover:file:bg-brand-100
+                      cursor-pointer border border-warm-200 rounded-2xl p-1.5
+                      transition-colors duration-200 bg-white
+                    "
+                  />
+                  {resumeError && (
+                    <p className="mt-2 text-xs font-medium text-red-500 animate-fade-in flex items-center gap-1">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      {resumeError}
+                    </p>
+                  )}
+                </div>
+
                 {/* Submit button */}
                 <button
                   type="submit"
-                  disabled={!name.trim() || submitting}
+                  disabled={!name.trim() || submitting || !!resumeError}
                   className="
                     w-full flex items-center justify-center gap-2.5
                     bg-brand-600 hover:bg-brand-700
@@ -339,7 +409,7 @@ export default function CandidateEntry() {
                   {submitting ? (
                     <>
                       <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                       </svg>
                       Starting…
                     </>
@@ -347,7 +417,7 @@ export default function CandidateEntry() {
                     <>
                       Begin Assessment
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                        <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                       </svg>
                     </>
                   )}
@@ -357,8 +427,8 @@ export default function CandidateEntry() {
               {/* Warning notice */}
               <div className="mt-5 flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
                 <svg width="14" height="14" className="mt-0.5 flex-shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                  <path d="M12 9v4"/><path d="M12 17h.01"/>
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                  <path d="M12 9v4" /><path d="M12 17h.01" />
                 </svg>
                 <p className="text-xs text-amber-700 leading-relaxed font-medium">
                   Do not refresh or switch tabs once the assessment begins. Each candidate gets one attempt only.

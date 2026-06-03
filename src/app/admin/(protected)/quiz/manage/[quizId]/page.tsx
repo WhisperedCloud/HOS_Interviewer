@@ -128,7 +128,17 @@ function EditQuestionModal({
     question.options.indexOf(question.correct_answer)
   );
   const [timeLimit, setTimeLimit] = useState(question.time_limit_seconds);
+  const [image, setImage] = useState<string | null>(question.image_url || null);
   const [err, setErr] = useState('');
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1 * 1024 * 1024) { setErr('Image must be less than 1MB'); return; }
+    const reader = new FileReader();
+    reader.onload = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const updateOption = (i: number, v: string) => {
     const next = [...options]; next[i] = v; setOptions(next);
@@ -143,6 +153,7 @@ function EditQuestionModal({
       options,
       correct_answer:     options[correctIndex],
       time_limit_seconds: timeLimit,
+      image_url:          image,
     });
   };
 
@@ -183,6 +194,30 @@ function EditQuestionModal({
                 rows={3} value={text} onChange={e => setText(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl font-body text-sm text-charcoal-900 placeholder:text-charcoal-400 bg-white border-2 border-warm-300 hover:border-warm-400 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_rgb(232_72_58_/_0.09)] resize-none transition-all duration-200"
               />
+            </div>
+
+            {/* Image Upload */}
+            <div className="flex flex-col gap-1.5">
+              <label className="font-display font-semibold text-xs text-charcoal-600 uppercase tracking-wider">
+                Attach Image (Optional)
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-warm-100 hover:bg-warm-200 border border-warm-300 rounded-xl text-sm font-display font-semibold text-charcoal-700 transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                  Upload Image
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                </label>
+                {image && (
+                  <div className="relative group">
+                    <img src={image} alt="Preview" className="h-10 w-auto rounded-lg object-cover border border-warm-200" />
+                    <button type="button" onClick={() => setImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Options */}
@@ -307,9 +342,14 @@ function QuestionCard({
         <span className="flex-shrink-0 w-7 h-7 rounded-xl bg-brand-100 text-brand-700 font-display font-bold text-xs flex items-center justify-center mt-0.5">
           {index + 1}
         </span>
-        <p className="font-display font-semibold text-charcoal-900 text-sm leading-snug flex-1">
-          {question.question_text}
-        </p>
+        <div className="flex-1">
+          <p className="font-display font-semibold text-charcoal-900 text-sm leading-snug">
+            {question.question_text}
+          </p>
+          {question.image_url && (
+            <img src={question.image_url} alt="Question figure" className="mt-3 max-h-40 rounded-xl border border-warm-200 object-contain bg-warm-50" />
+          )}
+        </div>
       </div>
 
       {/* Options */}
@@ -393,6 +433,16 @@ export default function QuizQuestionEditor() {
   const [options,      setOptions]      = useState(['', '', '', '']);
   const [correctIndex, setCorrectIndex] = useState(0);
   const [timeLimit,    setTimeLimit]    = useState(60);
+  const [imageBase64,  setImageBase64]  = useState<string | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1 * 1024 * 1024) { alert('Image must be less than 1MB'); return; }
+    const reader = new FileReader();
+    reader.onload = () => setImageBase64(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   /* Edit modal */
   const [editingQ, setEditingQ] = useState<Question | null>(null);
@@ -430,10 +480,11 @@ export default function QuizQuestionEditor() {
       options,
       correct_answer:     options[correctIndex],
       time_limit_seconds: timeLimit,
+      image_url:          imageBase64,
     }]);
 
     if (!error) {
-      setQuestionText(''); setOptions(['', '', '', '']); setCorrectIndex(0); setTimeLimit(60);
+      setQuestionText(''); setOptions(['', '', '', '']); setCorrectIndex(0); setTimeLimit(60); setImageBase64(null);
       setSuccessMsg(true);
       setTimeout(() => setSuccessMsg(false), 2500);
       await fetchData();
@@ -547,6 +598,30 @@ export default function QuizQuestionEditor() {
                 onChange={e => setQuestionText(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl font-body text-sm text-charcoal-900 placeholder:text-charcoal-400 bg-white border-2 border-warm-300 hover:border-warm-400 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_rgb(232_72_58_/_0.09)] resize-none transition-all duration-200"
               />
+            </div>
+
+            {/* Image Upload */}
+            <div className="flex flex-col gap-1.5">
+              <label className="font-display font-semibold text-xs text-charcoal-600 uppercase tracking-wider">
+                Attach Image (Optional)
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-warm-100 hover:bg-warm-200 border border-warm-300 rounded-xl text-sm font-display font-semibold text-charcoal-700 transition-colors">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                  Upload Image
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                </label>
+                {imageBase64 && (
+                  <div className="relative group">
+                    <img src={imageBase64} alt="Preview" className="h-10 w-auto rounded-lg object-cover border border-warm-200" />
+                    <button type="button" onClick={() => setImageBase64(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Options */}

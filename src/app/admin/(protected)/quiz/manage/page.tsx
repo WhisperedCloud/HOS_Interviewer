@@ -67,7 +67,7 @@ function Field({
           onChange={e => onChange(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          className="w-full px-4 py-3 text-sm font-body text-charcoal-900 placeholder:text-charcoal-400 bg-transparent rounded-2xl focus:outline-none"
+          className="w-full px-3 py-2 text-sm font-body text-charcoal-900 placeholder:text-charcoal-400 bg-transparent rounded-2xl focus:outline-none"
         />
       </div>
     </div>
@@ -163,36 +163,42 @@ function DeleteModal({
   );
 }
 
-/* ─── Edit dates modal ───────────────────────────────────────────────────── */
-function EditDatesModal({
+/* ─── Edit quiz modal ────────────────────────────────────────────────────── */
+function EditQuizModal({
   quiz, onCancel, onSave, saving,
 }: {
   quiz: Quiz; onCancel: () => void;
-  onSave: (from: string, until: string) => void;
+  onSave: (title: string, domain: string, from: string, until: string) => void;
   saving: boolean;
 }) {
+  const [newTitle, setNewTitle] = useState(quiz.title);
+  const [newDomain, setNewDomain] = useState(quiz.domain);
   const [newFrom,  setNewFrom]  = useState(quiz.active_from);
   const [newUntil, setNewUntil] = useState(quiz.active_until);
   const [err, setErr] = useState('');
 
   const handleSave = () => {
+    if (!newTitle.trim()) { setErr('Title is required.'); return; }
+    if (!newDomain.trim()) { setErr('Domain/Role is required.'); return; }
     if (new Date(newUntil) <= new Date(newFrom)) {
       setErr('"Active Until" must be after "Active From".');
       return;
     }
     setErr('');
-    onSave(newFrom, newUntil);
+    onSave(newTitle, newDomain, newFrom, newUntil);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="absolute inset-0 bg-charcoal-950/50 backdrop-blur-sm" onClick={() => !saving && onCancel()} />
-      <div className="relative z-10 w-full max-w-sm bg-white rounded-3xl shadow-2xl animate-scale-in">
-        <div className="h-1.5 w-full bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700 rounded-t-3xl" />
-        <div className="p-6">
-          <div className="flex items-start justify-between mb-5">
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-full items-start justify-center pt-[8vh] pb-4 px-4 sm:p-0 sm:pt-[10vh]">
+        <div className="fixed inset-0 bg-transparent transition-opacity" onClick={() => !saving && onCancel()} />
+
+        <div className="relative w-full max-w-sm transform overflow-hidden rounded-2xl bg-white text-left shadow-[0_8px_40px_-12px_rgba(0,0,0,0.3)] transition-all sm:my-8 border border-warm-200 animate-scale-in">
+          <div className="h-1.5 w-full bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700" />
+          <div className="p-5">
+            <div className="flex items-start justify-between mb-4">
             <div>
-              <h3 className="font-display font-bold text-charcoal-900 text-lg leading-tight">Edit Access Window</h3>
+              <h3 className="font-display font-bold text-charcoal-900 text-lg leading-tight">Edit Quiz Details</h3>
               <p className="text-charcoal-400 text-xs mt-0.5 truncate max-w-[200px]">{quiz.title}</p>
             </div>
             <button
@@ -206,26 +212,28 @@ function EditDatesModal({
           </div>
 
           {err && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-4 text-xs text-red-700 font-medium animate-fade-down">
+            <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-3 text-xs text-red-700 font-medium animate-fade-down">
               {err}
             </div>
           )}
 
-          <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-col gap-3 mb-5">
+            <Field id="edit-title" label="Quiz Title" value={newTitle} onChange={setNewTitle} placeholder="e.g. SDE-1 Technical Assessment" />
+            <Field id="edit-domain" label="Domain / Role" value={newDomain} onChange={setNewDomain} placeholder="e.g. Engineering, Marketing" />
             <DatePicker id="edit-from"  label="Start Date & Time" value={newFrom}  onChange={setNewFrom}  />
             <DatePicker id="edit-until" label="End Date & Time"   value={newUntil} onChange={setNewUntil} />
           </div>
 
-          <div className="flex gap-2.5">
+          <div className="flex gap-2">
             <button
               onClick={onCancel} disabled={saving}
-              className="flex-1 py-2.5 rounded-2xl font-display font-semibold text-sm bg-warm-100 text-charcoal-600 hover:bg-warm-200 border border-warm-200 transition-colors disabled:opacity-50"
+              className="flex-1 py-2 rounded-xl font-display font-semibold text-sm bg-warm-100 text-charcoal-600 hover:bg-warm-200 border border-warm-200 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleSave} disabled={saving}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-2xl font-display font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-brand-sm hover:shadow-brand-md active:scale-[0.97] transition-all duration-200 disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl font-display font-semibold text-sm bg-brand-600 hover:bg-brand-700 text-white shadow-brand-sm hover:shadow-brand-md active:scale-[0.97] transition-all duration-200 disabled:opacity-50"
             >
               {saving ? (
                 <><svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Saving…</>
@@ -235,6 +243,7 @@ function EditDatesModal({
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -300,7 +309,7 @@ function QuizCard({
       {/* Action row */}
       <div className="flex items-center gap-2 flex-wrap px-5 py-3 border-t border-warm-100 bg-warm-50/60">
 
-        {/* Edit dates */}
+        {/* Edit quiz */}
         <button
           onClick={() => onEdit(quiz)}
           className="inline-flex items-center gap-1.5 text-xs font-display font-semibold px-3 py-1.5 rounded-xl bg-white text-charcoal-600 hover:bg-warm-100 border border-warm-200 transition-colors"
@@ -309,7 +318,7 @@ function QuizCard({
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
-          Edit Dates
+          Edit Quiz
         </button>
 
         {/* Copy link */}
@@ -397,12 +406,14 @@ export default function ManageQuizzesPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleSaveDates = async (newFrom: string, newUntil: string) => {
+  const handleSaveQuiz = async (newTitle: string, newDomain: string, newFrom: string, newUntil: string) => {
     if (!editingQuiz) return;
     setSaving(true);
     const { error } = await supabase
       .from('quizzes')
       .update({
+        title: newTitle,
+        domain: newDomain,
         active_from:  new Date(newFrom).toISOString(),
         active_until: new Date(newUntil).toISOString(),
       })
@@ -450,7 +461,8 @@ export default function ManageQuizzesPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto w-full space-y-6 animate-fade-up">
+    <>
+      <div className="max-w-5xl mx-auto w-full space-y-6 animate-fade-up">
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between gap-4">
@@ -540,12 +552,14 @@ export default function ManageQuizzesPage() {
         </div>
       )}
 
-      {/* ── Edit dates modal ── */}
+      </div>
+
+      {/* ── Edit quiz modal ── */}
       {editingQuiz && (
-        <EditDatesModal
+        <EditQuizModal
           quiz={editingQuiz}
           onCancel={() => setEditingQuiz(null)}
-          onSave={handleSaveDates}
+          onSave={handleSaveQuiz}
           saving={saving}
         />
       )}
@@ -559,6 +573,6 @@ export default function ManageQuizzesPage() {
           deleting={deleting}
         />
       )}
-    </div>
+    </>
   );
 }

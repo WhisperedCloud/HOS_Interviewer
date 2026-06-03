@@ -228,7 +228,7 @@ export default function ViewResults() {
       </div>
 
       {/* ── Results area ── */}
-      {selectedQuiz && (
+      {selectedQuiz ? (
         <>
           {loadingResults ? (
             <div className="flex items-center justify-center h-32">
@@ -318,6 +318,7 @@ export default function ViewResults() {
                         <th className="px-4 py-3 text-left font-display font-semibold text-xs uppercase tracking-wider text-charcoal-500">Performance</th>
                         <SortTh label="Tab Switches" sortKey="tab_switch_count" current={sortKey} dir={sortDir} onSort={handleSort} />
                         <th className="px-4 py-3 text-left font-display font-semibold text-xs uppercase tracking-wider text-charcoal-500">Submitted</th>
+                        <th className="px-4 py-3 text-left font-display font-semibold text-xs uppercase tracking-wider text-charcoal-500">Resume</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -381,13 +382,33 @@ export default function ViewResults() {
                             <td className="px-4 py-3.5 text-xs text-charcoal-400 font-medium whitespace-nowrap">
                               {r.created_at ? fmtDate(r.created_at) : '—'}
                             </td>
+
+                            {/* Resume */}
+                            <td className="px-4 py-3.5">
+                              {r.resume_data ? (
+                                <a 
+                                  href={r.resume_data} 
+                                  download={`${r.candidate_name}_Resume`}
+                                  className="inline-flex items-center gap-1.5 font-display font-semibold text-xs px-2.5 py-1 rounded-pill border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                  </svg>
+                                  Download
+                                </a>
+                              ) : (
+                                <span className="text-xs text-charcoal-300 font-medium">—</span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
 
                       {processed.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="px-4 py-10 text-center text-charcoal-400 text-sm">
+                          <td colSpan={7} className="px-4 py-10 text-center text-charcoal-400 text-sm">
                             No candidates match "<span className="font-semibold">{search}</span>"
                           </td>
                         </tr>
@@ -399,6 +420,32 @@ export default function ViewResults() {
             </>
           )}
         </>
+      ) : (
+        /* Empty state - Show recent 3 quizzes */
+        quizzes.length > 0 && (
+          <div className="pt-2 animate-fade-up" style={{ animationDelay: '100ms' }}>
+            <h2 className="font-display font-bold text-charcoal-900 text-lg mb-4">
+              Recent Assessments
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {quizzes.slice(0, 3).map(q => (
+                <button
+                  key={q.id}
+                  onClick={() => fetchResults(q)}
+                  className="bg-white border border-warm-200 rounded-3xl p-5 text-left hover:border-brand-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-warm-100 text-brand-600 flex items-center justify-center mb-4 group-hover:bg-brand-100 group-hover:scale-105 transition-all duration-200">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                  </div>
+                  <h3 className="font-display font-bold text-charcoal-900 text-base leading-tight mb-1 truncate">{q.title}</h3>
+                  <p className="text-charcoal-400 text-xs font-medium truncate">{q.domain}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )
       )}
     </div>
   );

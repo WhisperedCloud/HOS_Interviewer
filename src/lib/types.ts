@@ -16,6 +16,7 @@ export interface Question {
   options: string[];
   correct_answer: string;
   time_limit_seconds: number;
+  image_url?: string | null;
 }
 
 export interface Result {
@@ -27,4 +28,5 @@ export interface Result {
   total_questions: number;
   answers: any[];
   tab_switch_count: number;
+  resume_data?: string;
 }

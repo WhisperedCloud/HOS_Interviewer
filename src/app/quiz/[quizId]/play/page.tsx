@@ -48,30 +48,38 @@ export default function QuizEngine() {
   const router = useRouter();
   const { tabSwitchCount } = useAntiCheat();
 
-  const [questions, setQuestions]         = useState<PlayableQuestion[]>([]);
-  const [currentIndex, setCurrentIndex]   = useState(0);
-  const [answers, setAnswers]             = useState<Record<string, string>>({});
+  const [questions, setQuestions] = useState<PlayableQuestion[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft]           = useState(0);
-  const [totalTime, setTotalTime]         = useState(0);
-  const [loading, setLoading]             = useState(true);
-  const [submitting, setSubmitting]       = useState(false);
-  const [animateIn, setAnimateIn]         = useState(true);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [totalTime, setTotalTime] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [animateIn, setAnimateIn] = useState(true);
 
   /* ── Submit results ── */
   const submitResults = useCallback(async (finalAnswers: Record<string, string>) => {
     setSubmitting(true);
     const candidateName = localStorage.getItem(`candidate_name_${quizId}`) || 'Unknown';
+    const resumeData = localStorage.getItem(`candidate_resume_${quizId}`);
     let score = 0;
     questions.forEach(q => { if (finalAnswers[q.id] === q.correct_answer) score += 1; });
-    await supabase.from('results').insert([{
+    
+    const payload: any = {
       quiz_id: quizId,
       candidate_name: candidateName,
       score,
       answers: finalAnswers,
       tab_switch_count: tabSwitchCount,
-    }]);
+    };
+    if (resumeData) payload.resume_data = resumeData;
+
+    await supabase.from('results').insert([payload]);
+    
     localStorage.removeItem(`candidate_name_${quizId}`);
+    localStorage.removeItem(`candidate_resume_${quizId}`);
+    localStorage.removeItem(`candidate_resume_name_${quizId}`);
     router.push(`/quiz/${quizId}/success`);
   }, [questions, quizId, router, tabSwitchCount]);
 
@@ -127,7 +135,7 @@ export default function QuizEngine() {
   /* ── States ── */
   if (loading) return (
     <FullPageState
-      icon={<svg className="animate-spin text-brand-600" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>}
+      icon={<svg className="animate-spin text-brand-600" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>}
       title="Loading your assessment"
       subtitle="Fetching and randomising questions — just a moment…"
     />
@@ -135,26 +143,26 @@ export default function QuizEngine() {
 
   if (questions.length === 0) return (
     <FullPageState
-      icon={<svg className="text-charcoal-400" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>}
+      icon={<svg className="text-charcoal-400" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>}
       title="No questions found"
-      subtitle="This quiz doesn't have any questions yet. Please contact your recruiter."
+      subtitle="This quiz doesn't have any questions yet. Please contact the recruiter."
     />
   );
 
   if (submitting) return (
     <FullPageState
-      icon={<svg className="animate-spin text-brand-600" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>}
+      icon={<svg className="animate-spin text-brand-600" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>}
       title="Submitting your answers"
       subtitle="Please wait — do not close or refresh this tab."
     />
   );
 
-  const currentQ   = questions[currentIndex];
-  const progress   = ((currentIndex) / questions.length) * 100;
-  const timerPct   = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
-  const isLastQ    = currentIndex === questions.length - 1;
-  const isUrgent   = timeLeft <= 10;
-  const isMedium   = timeLeft <= 20 && timeLeft > 10;
+  const currentQ = questions[currentIndex];
+  const progress = ((currentIndex) / questions.length) * 100;
+  const timerPct = totalTime > 0 ? (timeLeft / totalTime) * 100 : 0;
+  const isLastQ = currentIndex === questions.length - 1;
+  const isUrgent = timeLeft <= 10;
+  const isMedium = timeLeft <= 20 && timeLeft > 10;
 
   return (
     <div className="relative flex flex-col min-h-dvh bg-[#fafaf9] overflow-hidden">
@@ -197,8 +205,8 @@ export default function QuizEngine() {
           {tabSwitchCount > 0 && (
             <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-600 text-xs font-display font-semibold px-3 py-1.5 rounded-pill animate-fade-in">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                <path d="M12 9v4"/><path d="M12 17h.01"/>
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" /><path d="M12 17h.01" />
               </svg>
               {tabSwitchCount} tab {tabSwitchCount === 1 ? 'switch' : 'switches'}
             </div>
@@ -210,12 +218,12 @@ export default function QuizEngine() {
             ${isUrgent
               ? 'bg-red-50 border-red-300 text-red-600 animate-pulse-brand'
               : isMedium
-              ? 'bg-amber-50 border-amber-300 text-amber-700'
-              : 'bg-warm-50 border-warm-300 text-charcoal-700'
+                ? 'bg-amber-50 border-amber-300 text-amber-700'
+                : 'bg-warm-50 border-warm-300 text-charcoal-700'
             }
           `}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
             <span aria-live="polite" aria-label={`${timeLeft} seconds remaining`}>
               {timeLeft}s
@@ -226,9 +234,8 @@ export default function QuizEngine() {
         {/* Timer progress bar */}
         <div className="h-1 w-full bg-warm-100">
           <div
-            className={`h-full transition-all duration-1000 ease-linear ${
-              isUrgent ? 'bg-red-500' : isMedium ? 'bg-amber-500' : 'bg-brand-500'
-            }`}
+            className={`h-full transition-all duration-1000 ease-linear ${isUrgent ? 'bg-red-500' : isMedium ? 'bg-amber-500' : 'bg-brand-500'
+              }`}
             style={{ width: `${timerPct}%` }}
             role="progressbar"
             aria-valuenow={timeLeft}
@@ -252,8 +259,8 @@ export default function QuizEngine() {
                   ${i === currentIndex
                     ? 'w-6 h-2 bg-brand-600'
                     : i < currentIndex
-                    ? 'w-2 h-2 bg-brand-300'
-                    : 'w-2 h-2 bg-warm-300'
+                      ? 'w-2 h-2 bg-brand-300'
+                      : 'w-2 h-2 bg-warm-300'
                   }
                 `}
               />
@@ -276,15 +283,21 @@ export default function QuizEngine() {
               {/* Q number pill */}
               <div className="mb-4">
                 <span className="inline-flex items-center gap-1.5 bg-brand-50 border border-brand-100 text-brand-700 text-xs font-display font-semibold px-3 py-1 rounded-pill">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg>
                   Question {currentIndex + 1} of {questions.length}
                 </span>
               </div>
 
               {/* Question text */}
-              <h2 className="font-display font-bold text-charcoal-900 text-xl sm:text-2xl leading-snug mb-7">
+              <h2 className="font-display font-bold text-charcoal-900 text-xl sm:text-2xl leading-snug mb-4">
                 {currentQ.question_text}
               </h2>
+
+              {currentQ.image_url && (
+                <div className="mb-7 flex justify-start">
+                  <img src={currentQ.image_url} alt="Question figure" className="max-h-64 rounded-2xl border border-warm-200 object-contain shadow-sm bg-warm-50" />
+                </div>
+              )}
 
               {/* Options */}
               <div className="flex flex-col gap-3" role="radiogroup" aria-label="Answer options">
@@ -332,7 +345,7 @@ export default function QuizEngine() {
                       {isSelected && (
                         <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-600 flex items-center justify-center animate-scale-in">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <polyline points="20 6 9 17 4 12"/>
+                            <polyline points="20 6 9 17 4 12" />
                           </svg>
                         </span>
                       )}
@@ -368,14 +381,14 @@ export default function QuizEngine() {
                     <>
                       Submit Test
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <polyline points="20 6 9 17 4 12"/>
+                        <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </>
                   ) : (
                     <>
                       Next Question
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                        <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
                       </svg>
                     </>
                   )}
@@ -387,7 +400,7 @@ export default function QuizEngine() {
           {/* Bottom warning */}
           <div className="mt-5 flex items-center justify-center gap-2 text-xs text-charcoal-400 font-medium">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
             Do not switch tabs or refresh — your session is being monitored.
           </div>
