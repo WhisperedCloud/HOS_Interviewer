@@ -274,6 +274,9 @@ function QuizCard({
                 {quiz.title}
               </h3>
               <StatusBadge status={status} />
+              <span className="inline-flex items-center gap-1.5 border border-warm-200 bg-warm-50 text-charcoal-600 text-[10px] font-display font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg">
+                {quiz.type === 'coding' ? 'Coding' : 'MCQ'}
+              </span>
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs text-charcoal-400 font-medium">
               <span className="flex items-center gap-1">

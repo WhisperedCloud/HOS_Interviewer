@@ -113,6 +113,13 @@ export default function QuizEngine() {
     if (!candidateName) { router.push(`/quiz/${quizId}`); return; }
 
     const fetchAndRandomizeQuestions = async () => {
+      // Check quiz type first
+      const { data: quizData } = await supabase.from('quizzes').select('type').eq('id', quizId).single();
+      if (quizData?.type === 'coding') {
+        router.replace(`/quiz/${quizId}/code`);
+        return;
+      }
+
       const { data } = await supabase.from('questions').select('*').eq('quiz_id', quizId);
       if (data && data.length > 0) {
         const shuffled = data

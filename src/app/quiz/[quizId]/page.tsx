@@ -206,7 +206,7 @@ export default function CandidateEntry() {
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || submitting || resumeError) return;
+    if (!name.trim() || !email.trim() || submitting || resumeError || !quiz) return;
     setSubmitting(true);
     localStorage.setItem(`candidate_name_${quizId}`, name.trim());
     localStorage.setItem(`candidate_email_${quizId}`, email.trim());
@@ -217,7 +217,12 @@ export default function CandidateEntry() {
       localStorage.removeItem(`candidate_resume_${quizId}`);
       localStorage.removeItem(`candidate_resume_name_${quizId}`);
     }
-    router.push(`/quiz/${quizId}/play`);
+    
+    if (quiz.type === 'coding') {
+      router.push(`/quiz/${quizId}/code`);
+    } else {
+      router.push(`/quiz/${quizId}/play`);
+    }
   };
 
   /* ── States ── */
@@ -277,6 +282,16 @@ export default function CandidateEntry() {
 
                 {/* Info chips */}
                 <div className="flex flex-wrap justify-center gap-2">
+                  <InfoChip
+                    icon={
+                      quiz?.type === 'coding' ? (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22v-4"/><path d="M12 8v-4"/><path d="M22 12h-4"/><path d="M6 12H2"/><circle cx="12" cy="12" r="2"/></svg>
+                      )
+                    }
+                    label={quiz?.type === 'coding' ? 'Coding Assessment' : 'MCQ Assessment'}
+                  />
                   {quiz?.domain && (
                     <InfoChip
                       icon={

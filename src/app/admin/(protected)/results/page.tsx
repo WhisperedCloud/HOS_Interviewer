@@ -82,6 +82,71 @@ function SortTh({ label, sortKey, current, dir, onSort }: {
   );
 }
 
+/* ─── Code Review Modal ────────────────────────────────────────────────────── */
+function CodeReviewModal({ result, onClose }: { result: Result; onClose: () => void }) {
+  const code = result.code || 'No code submitted';
+  const testResults = result.test_results || [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
+      <div className="absolute inset-0 bg-charcoal-950/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]">
+        <div className="h-1.5 w-full bg-gradient-to-r from-brand-500 via-brand-600 to-brand-700" />
+        
+        <div className="p-6 flex items-center justify-between border-b border-warm-200">
+          <div>
+            <h3 className="font-display font-bold text-charcoal-900 text-lg">Code Review</h3>
+            <p className="text-charcoal-500 text-sm">Candidate: <span className="font-semibold">{result.candidate_name}</span></p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-charcoal-400 hover:text-charcoal-600 hover:bg-warm-100 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col md:flex-row gap-6 bg-warm-50/50">
+          <div className="flex-1 flex flex-col gap-2 min-w-0">
+            <h4 className="font-display font-bold text-sm text-charcoal-900 uppercase tracking-wider">Submitted Code</h4>
+            <div className="bg-charcoal-900 rounded-2xl p-4 overflow-x-auto border border-charcoal-800 flex-1">
+              <pre className="font-mono text-sm text-green-400"><code>{code}</code></pre>
+            </div>
+          </div>
+
+          <div className="w-full md:w-1/3 flex flex-col gap-2">
+            <h4 className="font-display font-bold text-sm text-charcoal-900 uppercase tracking-wider">Test Results</h4>
+            <div className="bg-white border border-warm-200 rounded-2xl p-4 overflow-y-auto flex-1 shadow-sm">
+              {testResults.length === 0 ? (
+                <p className="text-sm text-charcoal-400 text-center py-4">No test results found.</p>
+              ) : (
+                <div className="space-y-3">
+                  {testResults.map((tr, i) => (
+                    <div key={i} className={`p-3 rounded-xl border ${tr.passed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        {tr.passed ? (
+                          <svg width="14" height="14" className="text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        ) : (
+                          <svg width="14" height="14" className="text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        )}
+                        <span className={`font-display font-semibold text-xs ${tr.passed ? 'text-green-800' : 'text-red-800'}`}>
+                          Case {i + 1} {tr.passed ? 'Passed' : 'Failed'}
+                        </span>
+                      </div>
+                      {!tr.passed && (
+                        <div className="text-[10px] text-red-700 font-mono bg-red-100/50 p-2 rounded-lg mt-1 break-all">
+                          {tr.error || 'Incorrect output'}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main page ──────────────────────────────────────────────────────────── */
 export default function ViewResults() {
   const [quizzes,       setQuizzes]       = useState<Quiz[]>([]);
@@ -100,6 +165,9 @@ export default function ViewResults() {
       .then(({ data }) => { setQuizzes(data || []); setLoadingQuizzes(false); });
   }, []);
 
+  const [totalTestCases, setTotalTestCases] = useState<number>(0);
+  const [selectedResult, setSelectedResult] = useState<Result | null>(null);
+
   /* Fetch results for chosen quiz */
   const fetchResults = async (quiz: Quiz) => {
     setSelectedQuiz(quiz);
@@ -108,6 +176,20 @@ export default function ViewResults() {
     setSearch('');
     const { data } = await supabase.from('results').select('*').eq('quiz_id', quiz.id);
     setResults(data || []);
+
+    if (quiz.type === 'coding') {
+      const { data: questions } = await supabase.from('coding_questions').select('id').eq('quiz_id', quiz.id);
+      if (questions && questions.length > 0) {
+        const questionIds = questions.map(q => q.id);
+        const { data: testCases } = await supabase.from('test_cases').select('id').in('question_id', questionIds);
+        setTotalTestCases(testCases?.length || 0);
+      } else {
+        setTotalTestCases(0);
+      }
+    } else {
+      setTotalTestCases(0);
+    }
+
     setLoadingResults(false);
   };
 
@@ -118,9 +200,11 @@ export default function ViewResults() {
   };
 
   /* Derived: filtered + sorted results */
-  const totalQs = results[0]
-    ? Object.keys(results[0].answers ?? {}).length
-    : 0;
+  const totalQs = selectedQuiz?.type === 'coding'
+    ? totalTestCases
+    : results[0]
+      ? Object.keys(results[0].answers ?? {}).length
+      : 0;
 
   const processed = useMemo(() => {
     let list = results.filter(r =>
@@ -318,7 +402,11 @@ export default function ViewResults() {
                         <th className="px-4 py-3 text-left font-display font-semibold text-xs uppercase tracking-wider text-charcoal-500">Performance</th>
                         <SortTh label="Tab Switches" sortKey="tab_switch_count" current={sortKey} dir={sortDir} onSort={handleSort} />
                         <th className="px-4 py-3 text-left font-display font-semibold text-xs uppercase tracking-wider text-charcoal-500">Submitted</th>
-                        <th className="px-4 py-3 text-left font-display font-semibold text-xs uppercase tracking-wider text-charcoal-500">Resume</th>
+                        {selectedQuiz.type === 'coding' ? (
+                          <th className="px-4 py-3 text-left font-display font-semibold text-xs uppercase tracking-wider text-charcoal-500">Code</th>
+                        ) : (
+                          <th className="px-4 py-3 text-left font-display font-semibold text-xs uppercase tracking-wider text-charcoal-500">Resume</th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -388,9 +476,17 @@ export default function ViewResults() {
                               {r.created_at ? fmtDate(r.created_at) : '—'}
                             </td>
 
-                            {/* Resume */}
+                            {/* Resume or Code Review */}
                             <td className="px-4 py-3.5">
-                              {r.resume_data ? (
+                              {selectedQuiz.type === 'coding' ? (
+                                <button
+                                  onClick={() => setSelectedResult(r)}
+                                  className="inline-flex items-center gap-1.5 font-display font-semibold text-xs px-2.5 py-1 rounded-pill border border-charcoal-200 bg-charcoal-50 text-charcoal-700 hover:bg-charcoal-100 transition-colors"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                                  View Code
+                                </button>
+                              ) : r.resume_data ? (
                                 <a 
                                   href={r.resume_data} 
                                   download={`${r.candidate_name}_Resume`}
@@ -451,6 +547,11 @@ export default function ViewResults() {
             </div>
           </div>
         )
+      )}
+
+      {/* Modals */}
+      {selectedResult && (
+        <CodeReviewModal result={selectedResult} onClose={() => setSelectedResult(null)} />
       )}
     </div>
   );
